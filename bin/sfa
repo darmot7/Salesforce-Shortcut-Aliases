@@ -1,0 +1,119 @@
+#!/usr/bin/env node
+
+const arg = require('arg');
+const chalk = require('chalk');
+const execSync = require("child_process").execSync;
+const boxen = require('boxen');
+
+const boxenOptionsFail = {
+    padding: 1,
+    margin: 1,
+    borderStyle: "round",
+    borderColor: "red",
+    backgroundColor: "#555555"
+   };
+
+const boxenOptionsPass = {
+    padding: 1,
+    margin: 1,
+    borderStyle: "round",
+    borderColor: "green",
+    backgroundColor: "#555555"
+   };
+
+const boxenOptionsNormal = {
+    padding: 1,
+    margin: 1,
+    borderStyle: "round",
+    borderColor: "blue",
+    backgroundColor: "#555555"
+   };
+
+const argv = require('yargs')
+    .usage('Usage: $0 -<command> [options]')
+    .help('h')
+    .alias('h', 'help')
+    .command('orglist', 'Shows a list of orgs')
+    .command('rt <testname>', 'Runs Tests')
+    .command('setuser <username>', 'Sets a Username as the default for the sfdx cli')
+    .alias('r','runtest')
+    .argv
+
+if(argv._.length != 1) {
+    console.log('Invalid number of commands');
+    return;
+}
+
+const command = argv._[0]
+if(command === 'rt') {
+    if(!argv.testname) {
+        console.log(chalk.redBright('No testnames.'));
+        return;
+    }
+
+    const testNameList = argv.testname.replace(/\s/g, ',');
+    console.log(chalk.blue('Test Names:'), testNameList);
+    console.log(chalk.blue('Getting Test Results...'));
+    const sfdxCommand = "sfdx force:apex:test:run -r tap -t ";
+    let testResults;
+    try {
+        testResults = execSync(sfdxCommand + testNameList).toString();
+    } catch (error) {
+        testResults = String(error.stdout);
+    }
+    
+    let testResultArray = [];
+    let numberOfTestsRun = 0;
+    String(testResults).split('\n').map(line => {
+        if(line.includes('not ok')) {
+            testResultArray.push(String(line));
+            numberOfTestsRun++;
+        } else if(line.includes('ok')) {
+            numberOfTestsRun++;
+        }
+
+    })
+
+    if(testResultArray.length === 0) {
+        boxOut(chalk.green(`ALL TESTS PASSED (${numberOfTestsRun})`), boxenOptionsPass);
+        return;
+    }
+    
+    boxOut(testResultArray.toString().replace(/,/g, '\n'), boxenOptionsFail);
+    console.log(chalk.red(`There were some test failures. ${testResultArray.length} ${testResultArray.length === 1 ? 'test' : 'tests'} failed out of ${numberOfTestsRun} tests...`));
+    return;
+}
+
+if(command === 'orglist') {
+    const sfdxCommand = 'sfdx force:org:list';
+    console.log(chalk.blue('Getting Org List...'));
+    boxOut(execSync(sfdxCommand).toString(), boxenOptionsNormal);
+    return;
+}
+
+if(command === 'setuser') {
+    if(!argv.username) {
+        boxOut('Provide a Username!', boxenOptionsFail);
+        return;
+    }
+
+    const sfdxCommand = 'sfdx force:config:set defaultusername=' + argv.username;
+    console.log(chalk.blue('Setting Default Username...'));
+    boxOut(execSync(sfdxCommand).toString(), boxenOptionsNormal);
+    return;
+}
+
+if(command === 'newbox') {
+    try{
+        console.log(chalk.blue('Kicking of new box login...'));
+        execSync('sfdx force:auth:web:login -r https://test.salesforce.com -a')
+        console.log(chalk.blue('Setting user post authentiction'));
+
+    } catch (error) {
+        console.log(chalk.red('Something bad happened....'));
+    }
+}
+
+function boxOut(message, boxenOptions) {
+    console.log(boxen(message, boxenOptions));
+}
