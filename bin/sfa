@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-
+const settings = require('../settings.json'); 
 const arg = require('arg');
 const chalk = require('chalk');
 const execSync = require("child_process").execSync;
@@ -36,6 +36,7 @@ const argv = require('yargs')
     .command('orglist', 'Shows a list of orgs')
     .command('rt <testname>', 'Runs Tests')
     .command('setuser <username>', 'Sets a Username as the default for the sfdx cli')
+    .command('open <org>', 'Opens an org with a given suffix, uses settings.json')
     .alias('r','runtest')
     .argv
 
@@ -110,13 +111,37 @@ if(command === 'setuser') {
 if(command === 'newbox') {
     try{
         console.log(chalk.blue('Kicking of new box login...'));
-        execSync('sfdx force:auth:web:login -r https://test.salesforce.com -a')
+        execSync('sfdx force:auth:web:login -r https://test.salesforce.com -a');
         console.log(chalk.blue('Setting user post authentiction'));
 
     } catch (error) {
         console.log(chalk.red('Something bad happened....'));
     }
 }
+
+if(command === 'open') {
+    let command = 'sfdx force:org:open -u';
+    if(!argv.org) {
+        boxOut('Provide an Org suffix!', boxenOptionsFail);
+        return;
+    }
+
+    try {
+        let orgInput = argv.org;
+        if(settings.orgs[orgInput]) {
+            orgInput = settings.orgs[argv.org];
+            command += ` ${settings.baseName}.${orgInput}`;
+        } else {
+            command += ` ${argv.org}`;
+        }
+        console.log(chalk.blue('running:'), chalk.yellow(command));
+        execSync(command).toString();
+        console.log(chalk.bgBlue(chalk.yellow('Success!')));
+    } catch (error) {
+        console.log(chalk.red('Something bad happened while running', command));
+    }
+}
+
 
 function boxOut(message, boxenOptions) {
     console.log(boxen(message, boxenOptions));

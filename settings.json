@@ -1,0 +1,8 @@
+{
+    "baseName" : "", // example: yourlogin@yourdomain.com
+    "orgs" : {
+        "qa" : "",
+        "uat" : "",
+        "dev" : "" // example: {the suffix of your dev org}
+    }
+}
