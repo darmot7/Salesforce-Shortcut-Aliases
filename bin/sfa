@@ -66,13 +66,17 @@ if(command === 'rt') {
     let numberOfTestsRun = 0;
     String(testResults).split('\n').map(line => {
         if(line.includes('not ok')) {
-            testResultArray.push(String(line));
+            testResultArray.push(chalk.red(line));
             numberOfTestsRun++;
         } else if(line.includes('ok')) {
-            numberOfTestsRun++;
+            testResultArray.push(chalk.green(line));
+        } else if (line.includes('#')) {
+            testResultArray.push(chalk.yellow(line));
         }
 
     })
+    console.log(testResultArray.join('\n'));
+    return;
 
     if(testResultArray.length === 0) {
         boxOut(chalk.green(`ALL TESTS PASSED (${numberOfTestsRun})`), boxenOptionsPass);
